@@ -3,6 +3,7 @@
 #include <mysql/mysql.h>
 #include <stdlib.h>
 #include <string.h>
+#include<softPwm.h>
 #include <wiringPi.h>
 #include <wiringSerial.h>
 #define ID_LENTH 12
@@ -81,7 +82,8 @@ int read_db() {
     	rows = mysql_num_rows(res);  
     	fields = mysql_num_fields(res);
 	user_num = rows;  
-    	printf("The total users is: %d\n", rows);
+    	printf("Total users: %d\n", rows);
+	system("espeak -s 150 \"Total users three\" ");
  	for(j = 0; j < rows; j++) {
 		row = mysql_fetch_row(res);
 		for(i = 1; i < 13; i++) {
@@ -147,25 +149,44 @@ void user_function(int userNum,int reFlag) {
 	system("clear");
 	if(timeAuth(User[userNum].time,p->tm_min) == 0) {
 		if (reFlag == 0) {
+			softPwmWrite(userNum,25);
+			delay(1000);
+        		softPwmWrite(userNum,8);
+			delay(1000);
 			printf("Take Your Umbrella!,%s\n",User[userNum].name);
+			system("espeak \"Take Your Umbrella!\" ");
                 	User[userNum].returnFlag = "1";
-			if(write_db_tm(userNum,p->tm_min) == 0)
+			if(write_db_tm(userNum,p->tm_min) == 0) {
 				printf("Time has been recorded\n");
-               		if(write_db_re(userNum,"1") == 0)  
+				system("espeak \"Time has been recorded\" ");
+			}
+               		if(write_db_re(userNum,"1") == 0){  
 				printf("State has been updated\n");
+				system("espeak \"State has been updated\" ");
+			}
 		}
 		else {
-			printf("%s:have a nice day!\n",User[userNum].name);
-               	 	User[userNum].returnFlag = "0";
-			if(write_db_tm(userNum,1000) ==0 )
-				printf("Time record has been cleared\n");
-                	if(write_db_re(userNum,"0") == 0) 
-				printf("State has been updated\n");
+			softPwmWrite(userNum,25);
+			delay(3000);
+			if(digitalRead(3) == 0) {
+				delay(2000);
+				if(digitalRead(3) == 0) {
+					softPwmWrite(userNum,8);
+					printf("%s:have a nice day!\n",User[userNum].name);
+               	 			system("espeak \"have a nice day\" ");
+					User[userNum].returnFlag = "0";
+					if(write_db_tm(userNum,1000) ==0 ) {
+						printf("Time record has been cleared\n");
+						system("espeak \"Time record has been cleared\" ");
+					}	
+  		         	     	if(write_db_re(userNum,"0") == 0) {
+						printf("State has been updated\n");
+						system("espeak \"State has been updated\" ");	
+					}
+				
+				}
+			}
 		}
-		delay(3000);
-        	digitalWrite(userNum,HIGH);
-        	delay(1000);
-        	digitalWrite(userNum,LOW);
 	}
 	else {
 		delay(1000);
@@ -178,23 +199,27 @@ int main(){
 	char data[] = {0x03,0x08,0xC1,0x20,0x02,0x00,0x00,0x17};
 	int readData;
 	int ID[ID_LENTH];
-	int i;
+	int i,isCreateok;
 	wiringPiSetup();
-	pinMode(0,OUTPUT);
-	pinMode(1,OUTPUT);
-	pinMode(2,OUTPUT);
-	pinMode(3,OUTPUT);
-	pinMode(4,OUTPUT);
+	pinMode(3,INPUT);
 	pinMode(5,INPUT);
+	isCreateok = softPwmCreate(0,8,100);
+	isCreateok = softPwmCreate(1,8,100);
+	isCreateok = softPwmCreate(2,8,100);
 	fd = serialOpen("/dev/ttyAMA0",9600);
 	if(fd < 0) return 1;
 	system("clear");
 	printf("System is Running...\n");
-	delay(2000);
+	system("espeak -s 150 \"system is running\" ");
+	delay(500);
 	if(read_db() == 0) {
 		printf("Database is connected\n");
+		system("espeak -s 150 \"Database is connected\" ");
 	}
 	printf("Copyright OUC:Industrial Automation\n");
+	system("espeak -s 150 \"Copyright Industrial Automation\"");
+	delay(100);
+	system("espeak -s 150 \"Ocean University of China\"");
 	serialPuts(fd,data);
 	while(1) {
 		if(digitalRead(5) == 1) {
@@ -205,6 +230,7 @@ int main(){
 			if(idAuth(ID) == -1){
 				system("clear");
 				printf("Permission denied!\n");
+				system("espeak \"Permission denied!\" ");
 				digitalWrite(0,LOW);
 				delay(4000);system("clear");
 			}
