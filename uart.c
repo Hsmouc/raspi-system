@@ -1,17 +1,18 @@
 #include <stdio.h>
 #include <sys/time.h>
+#include <mysql/mysql.h>
 #include <stdlib.h>
+#include <string.h>
 #include <wiringPi.h>
 #include <wiringSerial.h>
+
 #define ID_LENTH 12
-struct{
+struct User{
 	int userID[ID_LENTH];
 	int returnFlag;
 	char *name;
-}User[] = {	
-	{{4,12,2,32,0,4,0,101,244,8,137,193},0,"Ben"},
-	{{4,12,2,32,0,2,0,122,45,162,231,197},0,"Simon"}
-};
+}User[2];
+
 int j;
 int idAuth(int *testID) {
 	int i,k = 0;
@@ -31,6 +32,56 @@ int idAuth(int *testID) {
 	else
 		return -1;
 }
+	
+int read_db() {  
+    	MYSQL           mysql;  
+    	MYSQL_RES       *res = NULL;  
+    	MYSQL_ROW       row;  
+    	char            *query_str = NULL;  
+    	int             rc, i, j, fields;  
+    	int             rows;  
+    	if (NULL == mysql_init(&mysql)) {  
+        	printf("mysql_init(): %s\n", mysql_error(&mysql));  
+        	return -1;  
+    	}  
+    	if (NULL == mysql_real_connect(&mysql,  
+                	"localhost",  
+                	"root",  
+                	"ubuntu",  
+                	"umbrella_db",  
+                	0,  
+                	NULL,  
+                	0)) {  
+        	printf("mysql_real_connect(): %s\n", mysql_error(&mysql));  
+        	return -1;  
+    	}  
+    	printf("1. Connected MySQL successful! \n");  
+    	query_str = "select * from users";  
+    	rc = mysql_real_query(&mysql, query_str, strlen(query_str));  
+    	if (0 != rc) {  
+        	printf("mysql_real_query(): %s\n", mysql_error(&mysql));  
+        	return -1;  
+    	}  
+    	res = mysql_store_result(&mysql);  
+    	if (NULL == res) {  
+        	 printf("mysql_restore_result(): %s\n", mysql_error(&mysql));  
+         	return -1;  
+    	}  
+    	rows = mysql_num_rows(res);  
+    	printf("The total rows is: %d\n", rows);  
+    	fields = mysql_num_fields(res);  
+    	printf("The total fields is: %d\n", fields);  
+ 	for(j = 0; j < 2; j++) {
+		row = mysql_fetch_row(res);
+		for(i = 1; i < 13; i++) {
+			*(User[j].userID+i-1) = atoi(row[i]);
+			User[j].name = row[13];
+			User[j].returnFlag = atoi(row[14]);		
+		}
+	}
+	mysql_close(&mysql);
+	return 0;
+}
 
 int main(){
 	int fd;
@@ -47,6 +98,11 @@ int main(){
 	if(fd < 0) return 1;
 	system("clear");
 	printf("System is Running...\n");
+	delay(2000);
+	if(read_db() == 0) {
+		printf("Database is connected\n");
+	}
+	printf("Copyright OUC:Industrial Automation\n");
 	serialPuts(fd,data);
 	while(1) {
 		if(digitalRead(2) == 1) {
@@ -59,7 +115,9 @@ int main(){
 				system("clear");
 				printf("Permission denied!\n");
 				digitalWrite(0,LOW);
-				delay(500);
+				delay(6000);
+				system("clear");
+				printf("Copyright OUC:Industrial Automation\n");
 			}
 			else{
 				if(User[idAuth(ID)].returnFlag == 0){
@@ -68,7 +126,9 @@ int main(){
 					printf("Take Your Umbrella!,%s\n",User[idAuth(ID)].name);
 					User[idAuth(ID)].returnFlag = 1;	
 					digitalWrite(0,HIGH);
-					delay(500);
+					delay(6000);
+					system("clear");
+					printf("Copyright OUC:Industrial Automation\n");
 					digitalWrite(0,LOW);
 				}
 				else{
@@ -76,7 +136,9 @@ int main(){
 					diff = (tpend[idAuth(ID)].tv_sec-tpstart[idAuth(ID)].tv_sec);
 					system("clear");
 					printf("%s:have a nice day!,time= %lu Sec\n",User[idAuth(ID)].name,diff);
-					delay(500);
+					delay(6000);
+					system("clear");
+					printf("Copyright OUC:Industrial Automation\n");
 					User[idAuth(ID)].returnFlag = 0;
 				}
 			}
