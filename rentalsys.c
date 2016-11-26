@@ -162,13 +162,15 @@ void user_function(int userNum,int reFlag) {
                 	if(write_db_re(userNum,"0") == 0) 
 				printf("State has been updated\n");
 		}
-		delay(3000);system("clear");
-        	digitalWrite(0,HIGH);
+		delay(3000);
+        	digitalWrite(userNum,HIGH);
         	delay(1000);
-        	digitalWrite(0,LOW);
+        	digitalWrite(userNum,LOW);
 	}
-	else 
+	else {
+		delay(1000);
 		printf("Blocked user!\n");
+	}
 }
 
 int main(){
@@ -179,7 +181,11 @@ int main(){
 	int i;
 	wiringPiSetup();
 	pinMode(0,OUTPUT);
-	pinMode(2,INPUT);
+	pinMode(1,OUTPUT);
+	pinMode(2,OUTPUT);
+	pinMode(3,OUTPUT);
+	pinMode(4,OUTPUT);
+	pinMode(5,INPUT);
 	fd = serialOpen("/dev/ttyAMA0",9600);
 	if(fd < 0) return 1;
 	system("clear");
@@ -191,7 +197,7 @@ int main(){
 	printf("Copyright OUC:Industrial Automation\n");
 	serialPuts(fd,data);
 	while(1) {
-		if(digitalRead(2) == 1) {
+		if(digitalRead(5) == 1) {
 			for(i = 0; i < ID_LENTH; i++) {
 				readData = serialGetchar(fd);
 				*(ID+i) = readData;
